@@ -1,0 +1,223 @@
+﻿#include "Graphic.zxbas"
+
+const actionEmpty as ubyte = 0
+const actionR as ubyte = 1
+const actionL as ubyte = 2
+const actionU as ubyte = 3
+const actionD as ubyte = 4
+const actionF as ubyte = 5
+const actionX as ubyte = 6
+
+const directionR as ubyte = 0
+const directionL as ubyte = 1
+const directionRS as ubyte = 2
+const directionLS as ubyte = 3
+const directionRX as ubyte = 6
+const directionLX as ubyte = 7
+const directionRD as ubyte = 8
+const directionLD as ubyte = 9
+const directionRS1 as ubyte = 10
+const directionLS1 as ubyte = 11
+const directionRS2 as ubyte = 12
+const directionLS2 as ubyte = 13
+const directionEmpty as ubyte = 14
+const directionRF as ubyte = 15
+const directionLF as ubyte = 16
+
+dim sprite1 as string
+dim sprite2 as string
+
+Sub DrawPlayer(direction as ubyte, frame as ubyte, x as ubyte, y as ubyte, color as ubyte)
+	ink color
+	'dim paper1 as ubyte=GetPaper(x,y)
+	'dim paper2 as ubyte=GetPaper(x,y+1)
+	'dim paper3 as ubyte=GetPaper(x+1,y)
+	'dim paper4 as ubyte=GetPaper(x+1,y+1)
+	'dim paper5 as ubyte=GetPaper(x-1,y)
+	'dim paper6 as ubyte=GetPaper(x-1,y+1)
+	paper 0
+	if direction = directionR then
+		PlayerWalkRight()
+		if frame = 1 then
+			sprite1="\A\B"
+			sprite2="\C\D"
+		end if
+		if frame = 2 then
+			sprite1="\E\F"
+			sprite2="\G\H"
+		end if
+		if frame = 3 then
+			sprite1="\I\J"
+			sprite2="\K\L"
+			'StepSound3()
+		end if
+		if frame = 4 then
+			sprite1="\M\N"
+			sprite2="\O\P"
+		end if
+		if frame = 5 then
+			sprite1="\Q\R"
+			sprite2="\S\T"	
+			'StepSound4()			
+		end if
+		print at y,x; sprite1
+		print at y+1,x; sprite2
+	end if
+	
+	if direction = directionRS or direction = directionRD or direction = directionRF then PlayerStaticRight()
+	if direction = directionRS then		
+		print at y,x; "\A"
+		print at y+1,x; "\B"
+	end if
+
+	if direction = directionRD then
+		print at y,x; "\C"
+		print at y+1,x; "\D"
+	end if
+
+	if direction = directionRF then		
+		print at y+1,x; "\B"
+		RedrawArea1(x+1,y+1)
+		FireRight()
+		print at y,x; "\A\B"
+	end if
+
+	if direction = directionL then
+		PlayerWalkLeft()
+		if frame = 1 then
+			sprite1="\A\B"
+			sprite2="\C\D"
+		end if
+		if frame = 2 then
+			sprite1="\E\F"
+			sprite2="\G\H"
+		end if
+		if frame = 3 then
+			sprite1="\I\J"
+			sprite2="\K\L"
+			'StepSound3()			
+		end if
+		if frame = 4 then
+			sprite1="\M\N"
+			sprite2="\O\P"			
+		end if
+		if frame = 5 then
+			sprite1="\Q\R"
+			sprite2="\S\T"
+			'StepSound4()
+		end if
+		print at y,x-1; sprite1
+		print at y+1,x-1; sprite2
+	end if
+	
+	if direction = directionLS or direction = directionLD or direction = directionLF then PlayerStaticLeft()
+	if direction = directionLS then
+		print at y,x; "\A"
+		print at y+1,x; "\B"
+	end if
+
+	if direction = directionLD then
+		print at y,x; "\C"
+		print at y+1,x; "\D"
+	end if
+
+	if direction = directionLF then		
+		print at y+1,x; "\B"
+		FireLeft()
+		print at y,x-1; "\A\B"
+		RedrawArea1(x-1,y+1)
+	end if
+
+	if direction = directionLX or direction = directionRX then
+		if direction = directionLX then PlayerFallingLeft()
+		if direction = directionRX then PlayerFallingRight()
+		if frame=1 then
+			sprite1="\A\B"
+			sprite2="\C\D"
+		end if
+		if frame=2 then
+			sprite1="\E\F"
+			sprite2="\G\H"
+		end if
+		if frame=3 then
+			sprite1="\I\J"
+			sprite2="\K\L"
+		end if
+		if frame=4 then
+			sprite1="\M\N"
+			sprite2="\O\P"
+		end if
+		if frame=5 then
+			sprite2="\Q\R"
+		end if
+		if x=31 then x=30
+		if frame<5 then
+			print at y,x; sprite1
+			print at y+1,x; sprite2
+		else
+			print at y+1,x; sprite2
+		end if
+	end if
+
+	if direction = directionRS1 or direction = directionRS2 or direction = directionLS1 or direction = directionLS2 then
+		PlayerStairs()
+		if direction = directionRS1 or direction = directionLS1 then
+			print at y,x; "\A"
+			print at y+1,x; "\B"
+		end if
+		if direction = directionRS2 or direction = directionLS2 then
+			print at y,x; "\C"
+			print at y+1,x; "\D"
+		end if
+		if frame=2 then StepSound()
+		if frame=3 then StepSound2()
+	end if
+
+	if direction = directionLX or direction = directionRX then
+		if frame=5 then
+			RedrawArea1(x,y)
+			RedrawArea1(x+1,y)
+			RedrawArea1(x-1,y)
+		end if
+		if frame=1 then
+			RedrawArea1(x+2,y)
+			RedrawArea1(x+2,y-1)
+			RedrawArea1(x-1,y)
+			RedrawArea1(x-1,y+1)
+		end if 
+	end if
+	
+	if direction = directionLX or direction = directionRX then 
+		if direction = directionRX then x = x + 3
+		RedrawArea1(x-1,y)
+		RedrawArea1(x-1,y+1)
+	end if 
+	
+	if direction = directionR or direction = directionL then
+		if frame = 1 then
+			if direction = directionL then x = x + 2
+			RedrawArea1(x-1,y)
+			RedrawArea1(x-1,y+1)
+		end if
+	end if
+	
+	if direction = directionRS or direction = directionLS then
+		RedrawArea1(x-1,y)
+		RedrawArea1(x-1,y+1)
+		RedrawArea1(x+1,y)
+		RedrawArea1(x+1,y+1)
+	end if
+	
+	if direction = directionRD or direction = directionLD then
+		RedrawArea1(x+1,y+1)
+		RedrawArea1(x+1,y)
+		RedrawArea1(x-1,y+1)
+		RedrawArea1(x-1,y)
+	end if
+	
+	if direction = directionRS1 or direction = directionRS2 or direction = directionLS1 or direction = directionLS2 then
+		if direction = directionLS1 or direction = directionLS2 then x = x + 2
+		RedrawArea1(x-1,y)
+		RedrawArea1(x-1,y+1)
+	end if
+End sub

@@ -1,0 +1,721 @@
+﻿#include "Functions.zxbas"
+#include "PlayerAndNPC.zxbas"
+#include "Music.zxbas"
+#include <scroll.bas>
+#include <winscroll.bas>
+
+PlayMusic(0)
+pause 0
+
+BORDER 0 : PAPER 0 : INK 7 : BRIGHT 0
+CLS
+Randomize
+
+const key1 as uinteger = 63233
+const key2 as uinteger = 63234
+const key3 as uinteger = 63236
+const key4 as uinteger = 63240
+const key5 as uinteger = 63248
+const keybreak as uinteger = 65025
+
+dim t as ubyte
+dim firex(2) as ubyte
+dim firey(2) as ubyte
+dim firea(2) as ubyte
+
+dim defkeyindex as ubyte = 0
+dim gameDifficulty as ubyte = 1
+dim joystick as ubyte = 1
+
+'goto start
+
+keyLeft = key1
+keyRight = key2
+keyUp = key4
+keyDown = key3
+keyFire = key5
+
+'Menu
+drawmenu:
+REM ink 6
+REM printat64(0,4): print64("ALFA VERSION. FOR DEBUG PURPOSES ONLY! BUILD 29082020.")
+ink 6
+Environment2()
+print at 6,11; "\B\C"
+print at 7,11; "\D\E"
+
+ink 2
+print at 6,13; bold 1; "RED RAID"
+ink 4
+printat64(7,26): print64("THE SINKING...")
+ink 7
+printat64(8,29): print64("SIDE A")
+
+ink 5
+printat64(10,26): print64("1 NEW GAME")
+UpdateJoystik(joystick)
+printat64(12,26): print64("3 DEFINE KEYS")
+UpdateDiff(gameDifficulty)
+PrintCompany()
+LongWait()
+PlayMusic(0)
+dim b as uinteger
+
+:mainmenu
+	b =  GetKeyScanCode
+	if b = key1 then Click(): CLS: goto start
+	if b = key2 then
+		ink 5
+		joystick = joystick+1
+		if joystick>2 then joystick = 1
+		if joystick=1 then
+			keyLeft = key1
+			keyRight = key2
+			keyUp = key4
+			keyDown = key3
+			keyFire = key5
+		end if
+		if joystick=2 then
+			keyLeft = 57090
+			keyRight = 57089
+			keyUp = 64257
+			keyDown = 64769
+			keyFire = 32513
+		end if
+		UpdateJoystik(joystick)
+		Click()
+		pause 2
+		b = 0
+	end if
+	if b = key3 then
+		Click()
+		CLS
+		ink 2
+		print at 6,11; bold 1; "DEFINE KEYS"
+		PrintCompany()
+		ink 5
+		defkeyindex = 0
+		keys:
+			if defkeyindex = 0 then printat64(9,24): print64("LEFT")
+			if defkeyindex = 1 then printat64(10,24): print64("RIGHT")
+			if defkeyindex = 2 then printat64(11,24): print64("UP/USE")
+			if defkeyindex = 3 then printat64(12,24): print64("DOWN")
+			if defkeyindex = 4 then printat64(13,24): print64("FIRE/ROPE")
+			b =  GetKeyScanCode
+			if b<>0 then
+				if defkeyindex = 0 then keyLeft = b
+				if defkeyindex = 1 then keyRight = b
+				if defkeyindex = 2 then keyUp = b
+				if defkeyindex = 3 then keyDown = b
+				if defkeyindex = 4 then keyFire = b
+				printat64(9 + defkeyindex,40)
+				print64("OK")
+				defkeyindex = defkeyindex + 1
+				b=0
+				Click()
+				LongWait()
+				if defkeyindex = 5 then CLS: joystick=2: goto drawmenu
+				goto keys
+			end if
+		goto keys:
+	end if
+	if b = key4 then
+		ink 5
+		gameDifficulty = gameDifficulty+1
+		if gameDifficulty>3 then gameDifficulty = 1
+		UpdateDiff(gameDifficulty)
+		Click()
+		LongWait()
+		b = 0
+	end if
+goto mainmenu
+
+'achSW=2 
+
+
+:start
+InitLevels()
+SetDifficulty(gameDifficulty)
+'set fire
+firex(0)=7
+firey(0)=12
+firea(0)=0
+firex(1)=27
+firey(1)=8
+firea(1)=1
+firex(2)=23
+firey(2)=5
+firea(2)=2
+'firea(0)=1
+'dim lastfire as ubyte = 1
+
+'achSOS=1 
+'light=1
+'achS=2
+'achSW=2
+
+playerDead = 0
+playerDirection = directionRS
+playerX = 10
+playerY = 14
+DrawLevel(3)
+
+'dim fireindex as ubyte=0
+RespawnPlayer()
+
+
+
+dim action as ubyte
+dim i as ubyte
+dim deltaX as ubyte
+dim deltaY as ubyte
+dim water as ubyte
+dim waterlevel as ubyte
+dim tempwaterlevel as float 
+dim loverlevel as ubyte 
+dim sink as ubyte 
+dim enemyinit as ubyte
+dim lx as ubyte
+dim ly as ubyte
+dim firespeed as ubyte
+firespeed=0
+enemyinit=0
+water=0
+waterlevel=0
+tempwaterlevel=0
+loverlevel=136
+sink=0
+dim drlight as ubyte
+drlight=1
+:main
+	if drlight=1 then DrawLight(playerX, playerY): drlight=0
+	if light=1 then
+		if water=8 then
+			ink 5
+			paper 1
+			plot 251,136+int(rnd*7)+waterlevel
+			draw int(rnd*4),0
+			if GetMap()=1 then
+				plot 171,136+int(rnd*7)+waterlevel
+				draw int(rnd*4),0
+			end if 
+			paper 0
+		end if 
+		if GetMap()=1 then
+			ScrollLeft(232,loverlevel,255,143+waterlevel)
+			ScrollLeft(0,loverlevel,168,143+waterlevel)
+		else
+			ScrollLeft(0,loverlevel,255,143+waterlevel)
+		end if
+	end if 
+
+	'Fire
+	dim x as ubyte
+	firespeed=firespeed+1
+	if firespeed=13 then
+		if GetMap()=1 then
+			FireGraphics()
+			for x=0 to 2
+				Fire(firex(x),firey(x),x)
+			next
+		end if 
+		firespeed=0
+	end if 
+	
+	
+	water=water+1
+	if water>9 then water=0
+	
+
+	if GetSaved() = 5 and achS=0 then 
+		achS=1
+	end if 
+	
+	'Move player
+    action = actionEmpty
+	if MultiKeys(keybreak)>0 then
+		ink 6
+		flash 1
+		printat64(21,17): print64(" PRESS FIRE TO QUIT THE GAME  ")
+		Click()
+		:pausegame2
+		b = GetKeyScanCode()
+		if b > 0 then 
+			flash 0
+			if b = keyFire then
+				cls
+				goto drawmenu
+			else				
+				ClearStatusLine()
+				goto continuegame3
+			end if 
+		end if 
+		goto pausegame2
+		:continuegame3
+	end if 
+	if MultiKeys(keyRight)>0 and MultiKeys(keyUp)=0  then
+		playerStairsDelay = 0
+		if playerDirection = directionLS or playerDirection = directionLD then
+			playerDirection = directionRS
+			action = actionEmpty
+		else
+			action = actionR
+		end if
+	end if
+	if MultiKeys(keyLeft)>0 and MultiKeys(keyUp)=0 then
+		playerStairsDelay = 0
+		if playerDirection = directionRS or playerDirection = directionRD then
+			playerDirection = directionLS
+			action = actionEmpty
+		else
+			action = actionL
+		end if
+	end if
+	if MultiKeys(keyUp)>0 and MultiKeys(keyLeft)=0 and MultiKeys(keyRight)=0 then action = actionU
+	if action = actionU and GetMap()=2 then
+		if InBathyscaphe(playerX,playerY)=1 then
+			achN=1
+			ShowAchievements()
+			flash 0
+			SubmarineSinking()
+			for playerY=0 to 13
+				winScrollDown(7,0,7,14)
+				winScrollDown(12,7,7,9)
+				winScrollDown(10,14,18,11)
+				beep 0.005, playerY
+				Wait()
+				Wait()
+				Wait()
+				Wait()
+				Wait()				
+			next
+			for playerY=0 to 14
+				winScrollLeft(9,0,15,4)
+				beep 0.005, -playerY
+				Wait()
+				Wait()
+				Wait()
+				Wait()
+				Wait()	
+			next
+			Click()
+			paper 0
+			cls
+			print at 9,8; ink 4; "CONGRATULATIONS!"
+			print at 11,6; ink 4; "MISSION ACCOMPLISHED!"
+			Click():Click():Click()
+			PlayMusic(0)
+			pause 0
+			Click()
+			playerDead = 0
+			CLS: goto drawmenu
+		end if 
+	end if 
+	if MultiKeys(keyDown)>0 then 
+		RemoveRopeIfNecessary()
+		action = actionD
+	end if
+	if MultiKeys(keyFire)>0 then 
+		action = actionF: playerStairsDelay = 0
+		RemoveRopeIfNecessary()
+		CanCatch(playerX,playerY,1)
+		CanCatch(playerX,playerY,-1)
+	end if 
+	if playerMove = 0 and (playerDirection = directionRS or playerDirection = directionLS or playerDirection = directionRD or playerDirection = directionLD) then playerFrame = 1
+	if playerMove = 0 then
+		if MultiKeys(keyRight)>0 and playerX=31 and GetMap()=2 then 
+			playerX=0
+			SaveLevel(2)
+			DrawLevel(1)
+			RestoreWaterLevel()
+			RefreshUI()
+			enemyinit=0
+			drlight=1
+			goto main
+		end if 
+		if MultiKeys(keyLeft)>0 and playerX=0 and GetMap()=1 then 
+			playerX=31
+			SaveLevel(1)
+			DrawLevel(2)
+			RestoreWaterLevel()
+			RefreshUI()
+			enemyinit=0
+			drlight=1
+			goto main
+		end if 
+		if MultiKeys(keyRight)>0 and playerX=31 and GetMap()=1 then 
+			playerX=0
+			SaveLevel(1)
+			DrawLevel(3)
+			RestoreWaterLevel()
+			RefreshUI()
+			drlight=1
+			goto main
+		end if 
+		if MultiKeys(keyLeft)>0 and playerX=0 and GetMap()=3 then 
+			playerX=31
+			SaveLevel(3)
+			DrawLevel(1)
+			RestoreWaterLevel()
+			RefreshUI()
+			enemyinit=0
+			drlight=1
+			goto main
+		end if 
+	end if 
+
+	'Death in fire
+	if GetMap()=1 then
+		for x=0 to 2
+			if playerDirection=directionR then
+				if playerX+1=firex(x) and playerY+1=firey(x) then playerDead=1
+			end if  
+			if playerDirection=directionL then
+				if playerX-1=firex(x) and playerY+1=firey(x) then playerDead=1
+			end if 
+		next
+	end if 
+
+	if playerDead = 1 and playerDirection <> directionRX and playerDirection <> directionLX then
+		playerFrame = 1
+		playerMove = 0
+		if playerDirection = directionRS or playerDirection = directionR or playerDirection = directionRD or playerDirection = directionRS1 or playerDirection = directionRS2 then
+			playerDirection = directionRX
+		end if
+		if playerDirection = directionLS or playerDirection = directionL or playerDirection = directionLD or playerDirection = directionLS1 or playerDirection = directionLS2 then
+			playerDirection = directionLX
+			playerX=playerX-1
+		end if
+	end if
+
+	if (playerDirection = directionRX or playerDirection = directionLX) then
+		action = actionX
+	end if
+	
+	lx=playerX
+	ly=playerY
+	PlayerOrNPCAction(playerX, playerY, playerDirection, action, playerMove, playerFrame, 7, 0)
+	if light=0 then
+		if lx<>playerX or ly<>playerY then
+			DrawLight(playerX, playerY)
+		else
+			Wait()
+			Wait()
+			Wait()
+		end if 
+	end if 	
+	
+	playerFrame = playerFrame + 1
+	if playerDead=1 and playerFrame>5 then
+		PlayMusic(1)
+		:subsink
+		paper 0
+		cls
+		print at 10,12; ink 4; "IT SANK"
+		:itsank
+		if MultiKeys(keyFire)>0 then
+			goto itsankend
+		end if 
+		goto itsank
+		:itsankend
+		Click()
+		playerDead = 0
+		CLS: goto drawmenu
+	end if 
+	if playerFrame > 5 then playerFrame = 1
+
+	'Sabouters
+	if achSW=2 and achSOS=2 and achS=2 then		
+		if enemyinit=0 then
+			if GetMap()=1 or GetMap()=2 then
+				for i=0 to 2
+					npcMove(i)=0
+					npcWorried(i)=0
+					npcFrame(i)=1
+					npcDuration(i)=0
+				next
+				enemyinit=1
+			else
+				enemyinit=0
+			end if 
+			if GetMap()=1 then				
+				npcDirection(0)=directionLS
+				npcX(0)=23
+				npcY(0)=11
+				npcDirection(1)=directionLS
+				npcX(1)=15
+				npcY(1)=14
+				npcDirection(2)=directionLS
+				npcX(2)=25
+				npcY(2)=17
+			end if 
+			if GetMap()=2 then
+				npcDirection(0)=directionLS
+				npcX(0)=28
+				npcY(0)=11
+				npcDirection(1)=directionLS
+				npcX(1)=27
+				npcY(1)=17
+				npcMove(2)=99
+			end if 					
+		end if 
+		if GetMap()=3 then enemyinit=0
+		if enemyinit=1 then
+			dim npcaction as ubyte
+			dim nx as ubyte
+			dim ny as ubyte
+			dim nd as ubyte
+			dim nm as ubyte
+			for i=0 to 2
+				nm=npcMove(i)
+				if nm<>99 then
+					nx=npcX(i)
+					ny=npcY(i)
+					nd=npcDirection(i)
+					npcaction = actionEmpty
+					if nd=directionR or nd=directionRS or nd=directionRD then
+						if NPCCanMoveRight(nx, ny) = 1 then
+							npcaction = actionR
+							else
+							npcaction = actionL
+						end if
+					end if
+					if nd=directionL or nd=directionLS or nd=directionLD then
+						if NPCCanMoveLeft(nx, ny) = 1 then
+							npcaction = actionL
+							else
+							npcaction = actionR
+						end if
+					end if
+					if nm=0 then
+						dim act as ubyte
+						act=int(rnd()*8)
+						'if act=3 then npcaction=actionD
+						if act=5 then npcaction=actionEmpty
+					end if 
+					if playerY=ny then
+						if playerX>nx and npcaction=actionR then
+							if CanHit(nx,ny,playerX)=1 then
+								npcaction=actionF
+								nd=directionRF
+								ShotSound()
+								Wait()
+								ShotSound()
+								Wait()
+								ShotSound()
+								playerDead=1
+							end if 
+						end if 
+						if playerX<nx and npcaction=actionL then
+							if CanHit(playerX,ny,nx)=1 then
+								npcaction=actionF
+								nd=directionLF
+								ShotSound()
+								Wait()
+								ShotSound()
+								Wait()
+								ShotSound()								
+								playerDead=1
+							end if 
+						end if 
+					end if 
+					PlayerOrNPCAction(nx, ny, nd, npcaction, nm, npcFrame(i), 4, i+1)
+					npcFrame(i) = npcFrame(i)+1
+					if npcFrame(i) > 5 then npcFrame(i) = 1
+					if npcDuration(i)>0 then npcDuration(i) = npcDuration(i) - 1
+				end if				
+			next
+			Wait()
+		else
+			Wait()
+			Wait()
+		end if	
+	else
+		if light=1 then Wait(): Wait()
+	end if 
+
+	'Wait()
+
+	if sink=sinkingspeed then
+		t = Tick()
+		if t = 0 then
+			SubmarineSinking()
+			for playerY=0 to 18
+				if playerY=1 then 
+					paper 1
+					for playerX=22 to 28
+						print at 3,playerX;" "
+					next
+				end if 
+				winScrollDown(3,0,32,18)
+				beep 0.005, playerY
+				Wait()
+				Wait()
+				Wait()
+				Wait()
+				Wait()				
+			next
+			playerDead = 1
+			goto subsink
+		else
+			tempwaterlevel=25-t*(25/255)
+			if waterlevel<>int(tempwaterlevel/8)*8 then
+				waterlevel=int(tempwaterlevel/8)*8
+				loverlevel=143+waterlevel-15
+				if light=1 then 
+					if GetMap()=1 then
+						for k=0 to 21
+							print at 6-waterlevel/8,k; paper 1; ink 5; " "
+						next
+						for k=29 to 31
+							print at 6-waterlevel/8,k; paper 1; ink 5; " "
+						next
+					else
+						for k=0 to 31
+							print at 6-waterlevel/8,k; paper 1; ink 5; " "
+						next
+					end if 				
+				end if 				
+			end if 
+			if tempwaterlevel/8<>waterlevel then 
+				if light=1 then 
+					if GetMap()=1 then
+						ink 1
+						plot 232,144+tempwaterlevel
+						draw 23,0
+						plot 0,144+tempwaterlevel
+						draw 175,0
+					else
+						ink 1
+						plot 0,144+tempwaterlevel
+						draw 255,0
+					end if
+				end if 				
+			end if 
+		end if 		
+	end if 
+
+	sink=sink+1
+	if sink>sinkingspeed then sink=0
+
+goto main
+
+sub RestoreWaterLevel()
+	if light=0 then return
+	dim map as ubyte = GetMap()
+	ink 1
+	for i=144 to tempwaterlevel+144		
+		if map=1 then
+			plot 232,i
+			draw 23,0
+			plot 0,i
+			draw 175,0
+		else
+			plot 0,i
+			draw 255,0
+		end if
+	next
+	for j=0 to waterlevel step 8
+		if map=1 then
+			for k=0 to 21
+				print at 6-j/8,k; paper 1; ink 5; " "
+			next
+			for k=29 to 31
+				print at 6-j/8,k; paper 1; ink 5; " "
+			next
+		else
+			for k=0 to 31
+				print at 6-j/8,k; paper 1; ink 5; " "
+			next
+		end if 		
+	next	
+end sub 
+
+sub Wait()
+	asm
+    	HALT
+	end asm
+end sub 
+
+sub LongWait()
+	Wait()
+	Wait()
+	Wait()
+end sub 
+
+sub UpdateDiff(diff as ubyte)
+	printat64(13,26)
+	if diff=1 then
+		print64("4 EASY")
+	end if
+	if diff=2 then
+		print64("4 NORMAL")
+	end if
+	if diff=3 then
+		print64("4 HARD  ")
+	end if
+end sub
+
+sub UpdateJoystik(joy as ubyte)
+	printat64(11,26)
+	if joy=1 then
+		print64("2 SINCLAIR")
+	end if
+	if joy=2 then
+		print64("2 KEYBOARD")
+	end if
+end sub
+
+sub PrintCompany()
+	ink 4
+	print at 17,13; "\F"
+	print at 18,13; "\H"
+	printat64(18,30): print64("BITLES")
+	plot 130,40
+	plot 130,39
+	print at 17,16; "\J"
+	ink 1
+	bright 1
+
+	print at 17,14; "\G"
+	print at 18,14; "\I"
+	bright 0
+	'printat64(19,22): print64("V1.1 BUILD 02072020")
+end sub
+
+sub ShotSound()
+	beep 0.0005,5
+	beep 0.0006,3
+	beep 0.0005,1
+end sub
+
+sub FireGraphics()
+	POKE UINTEGER 23675, @firegraphics
+	return
+    firegraphics:
+    ASM
+	DEFB 130,16,4,85,106,183,213,126		; A Fire
+	DEFB 16,130,8,145,123,109,186,126		; B
+	DEFB 8,33,136,21,90,52,170,28			; C
+    END ASM
+end sub 
+
+sub Fire(x as ubyte, y as ubyte, a as ubyte)
+	dim candraw as ubyte
+	candraw=0
+	if light=0 then
+		if x>playerX-3 and x<playerX+3 and y>playerY-3 and y<playerY+3 then candraw=1
+	else
+		candraw=1
+	end if 
+	if candraw=0 then return
+	paper 0
+	ink 2
+	bright 1
+	if firea(a)=0 then print at y,x; "\A"
+	if firea(a)=1 then print at y,x; "\B"
+	if firea(a)=2 then print at y,x; "\C"
+	firea(a)=firea(a)+1
+	if firea(a)>2 then firea(a)=0
+	bright 0
+end sub 
